@@ -5,6 +5,8 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+
 
 export class CdkImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -17,7 +19,7 @@ export class CdkImportServiceStack extends cdk.Stack {
     );
 
 
-    const importProductsFile  = new lambda.Function(this, 'importProductsFile', {
+    const importProductsFile = new lambda.Function(this, 'importProductsFile', {
       runtime: lambda.Runtime.NODEJS_20_X,
       code: lambda.Code.fromAsset('lambda'),
       handler: 'importProducts.handler',
@@ -32,9 +34,9 @@ export class CdkImportServiceStack extends cdk.Stack {
       handler: 'importFileParser.handler',
       code: lambda.Code.fromAsset('lambda'),
       environment: {
-          REGION:  cdk.Stack.of(this).region,
+        REGION: cdk.Stack.of(this).region,
       }
-  });
+    });
 
     const api = new apigateway.LambdaRestApi(this, 'importProductsApi', {
       handler: importProductsFile,
@@ -48,13 +50,13 @@ export class CdkImportServiceStack extends cdk.Stack {
     const importResource = api.root.addResource('import');
     importResource.addMethod('GET',
       new apigateway.LambdaIntegration(importProductsFile), {
-        requestParameters: {
-          'method.request.querystring.name': true,
-        },
-        requestValidatorOptions: {
-          validateRequestParameters: true,
-        },
-      }
+      requestParameters: {
+        'method.request.querystring.name': true,
+      },
+      requestValidatorOptions: {
+        validateRequestParameters: true,
+      },
+    }
     );
 
     uploadBucket.grantPut(importProductsFile);

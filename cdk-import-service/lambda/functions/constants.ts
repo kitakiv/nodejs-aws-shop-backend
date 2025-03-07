@@ -1,3 +1,5 @@
+import { Logger } from '@aws-lambda-powertools/logger';
+const logger = new Logger();
 
 
 const headers = {
@@ -29,4 +31,4 @@ enum StatusCodeMessage {
     SUCCESS = 'Success'
 }
 
-export { headers, StatusCode, StatusCodeMessage, Product };
+export { headers, StatusCode, StatusCodeMessage, Product, logger };
