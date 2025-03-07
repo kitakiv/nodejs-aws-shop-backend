@@ -1,11 +1,9 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createPresignedUrlWithClient } from './functions/presigned';
+import { headers, StatusCode, StatusCodeMessage } from './functions/constants';
 
 const BUCKET = process.env.BUCKET_NAME;
 const REGION = process.env.REGION;
-
-const s3Client = new S3Client({ region: REGION });
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -15,31 +13,23 @@ export const handler = async (
 
     if (!fileName || !fileName.toLowerCase().endsWith('.csv')) {
       return {
-        statusCode: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-        },
+        statusCode: StatusCode.BAD_REQUEST,
+        headers,
         body: JSON.stringify({
-          message: 'Invalid or missing file name. Please provide a CSV file name.',
+          message: StatusCodeMessage.BAD_REQUEST,
         }),
       };
     }
 
-    const command = new PutObjectCommand({
-      Bucket: BUCKET,
-      Key: `uploaded/${fileName}`,
-      ContentType: 'text/csv',
-    });
-
-    const signedUrl = await getSignedUrl(s3Client, command, {
-      expiresIn: 3600,
+    const signedUrl = await createPresignedUrlWithClient({
+      region: REGION!,
+      bucket: BUCKET!,
+      fileName,
     });
 
     return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-      },
+      statusCode: StatusCode.SUCCESS,
+      headers,
       body: JSON.stringify({
         signedUrl,
       }),
@@ -47,10 +37,8 @@ export const handler = async (
   } catch (error) {
     console.error('Error:', error);
     return {
-      statusCode: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-      },
+      statusCode: StatusCode.INTERNAL_SERVER_ERROR,
+      headers,
       body: JSON.stringify({
         message: 'Internal server error',
       }),

@@ -4,8 +4,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
-import * as path from 'path';
+import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 
 export class CdkImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -27,6 +26,15 @@ export class CdkImportServiceStack extends cdk.Stack {
         REGION: cdk.Stack.of(this).region,
       }
     });
+
+    const importFileParser = new lambda.Function(this, 'importFileParser', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'importFileParser.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+          REGION:  cdk.Stack.of(this).region,
+      }
+  });
 
     const api = new apigateway.LambdaRestApi(this, 'importProductsApi', {
       handler: importProductsFile,
@@ -51,6 +59,8 @@ export class CdkImportServiceStack extends cdk.Stack {
 
     uploadBucket.grantPut(importProductsFile);
     uploadBucket.grantRead(importProductsFile);
+    uploadBucket.grantReadWrite(importFileParser);
+    uploadBucket.grantDelete(importFileParser);
 
     importProductsFile.addToRolePolicy(
       new iam.PolicyStatement({
@@ -58,6 +68,15 @@ export class CdkImportServiceStack extends cdk.Stack {
         actions: ['s3:PutObject'],
         resources: [`${uploadBucket.bucketArn}/uploaded/*`],
       })
+    );
+
+    uploadBucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3n.LambdaDestination(importFileParser),
+      {
+        prefix: 'uploaded/',
+        suffix: '.csv',
+      }
     );
 
     new cdk.CfnOutput(this, 'ApiUrl', {
