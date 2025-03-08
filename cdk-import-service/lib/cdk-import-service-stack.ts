@@ -60,10 +60,9 @@ export class CdkImportServiceStack extends cdk.Stack {
     );
 
     uploadBucket.grantPut(importProductsFile);
-    uploadBucket.grantRead(importProductsFile);
     uploadBucket.grantReadWrite(importFileParser);
     uploadBucket.grantDelete(importFileParser);
-
+    //grant importProductsFile
     importProductsFile.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
@@ -71,7 +70,7 @@ export class CdkImportServiceStack extends cdk.Stack {
         resources: [`${uploadBucket.bucketArn}/uploaded/*`],
       })
     );
-
+    //trigger importFileParser
     uploadBucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
       new s3n.LambdaDestination(importFileParser),

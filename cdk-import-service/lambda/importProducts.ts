@@ -30,9 +30,7 @@ export const handler = async (
     return {
       statusCode: StatusCode.SUCCESS,
       headers,
-      body: JSON.stringify({
-        signedUrl,
-      }),
+      body: JSON.stringify(signedUrl),
     };
   } catch (error) {
     console.error('Error:', error);
