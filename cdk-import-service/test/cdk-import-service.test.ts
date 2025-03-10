@@ -9,10 +9,6 @@ jest.mock('../lambda/functions/presigned', () => ({
 }));
 
 describe('importProducts handler', () => {
-  const mockHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Credentials': true,
-  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -56,7 +52,6 @@ describe('importProducts handler', () => {
   });
 
   test('should return INTERNAL_SERVER_ERROR when createPresignedUrlWithClient fails', async () => {
-    // Arrange
     const mockEvent = {
         queryStringParameters: {
             name: 'test.csv'

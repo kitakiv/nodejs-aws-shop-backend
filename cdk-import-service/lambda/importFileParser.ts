@@ -7,7 +7,7 @@ import { Readable } from 'stream';
 const REGION = process.env.REGION;
 const DESTINATION_PREFIX = 'parsed/';
 
-export const handler: S3Handler = async (event: S3Event, context: Context) => {
+export const handler: S3Handler = async (event: S3Event, context?: Context) => {
   const s3 = new S3Client({ region: REGION });
   for (const record of event.Records) {
     const bucket = record.s3.bucket.name;
