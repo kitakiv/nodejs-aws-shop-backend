@@ -3,6 +3,8 @@ import { Construct } from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import* as sqs from 'aws-cdk-lib/aws-sqs';
+import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 
 export class CdkProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -22,7 +24,14 @@ export class CdkProductServiceStack extends cdk.Stack {
       sortKey: { name: 'count', type: dynamodb.AttributeType.NUMBER },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY
-    })
+    });
+
+    const catalogItemsQueue = new sqs.Queue(this, 'catalogItemsQueue', {
+      queueName: 'catalogItemsQueue',
+      deliveryDelay: cdk.Duration.seconds(10),
+      visibilityTimeout: cdk.Duration.seconds(100),
+      receiveMessageWaitTime: cdk.Duration.seconds(10),
+    });
 
     const params = {
       runtime: lambda.Runtime.NODEJS_20_X,
@@ -47,6 +56,20 @@ export class CdkProductServiceStack extends cdk.Stack {
       handler: 'productsById.handler',
       ...params
     });
+
+    const catalogBatchProcess = new lambda.Function(this, 'catalogBatchProcess', {
+      handler: 'catalogBatchProcess.handler',
+      timeout: cdk.Duration.seconds(30),
+      ...params
+    });
+
+    catalogBatchProcess.addEventSource(new SqsEventSource(catalogItemsQueue, {
+      batchSize: 5,
+      maxBatchingWindow: cdk.Duration.minutes(3),
+      reportBatchItemFailures: true
+    }));
+    catalogItemsQueue.grantConsumeMessages(catalogBatchProcess);
+
 
     const api = new apigateway.RestApi(this, 'ProductApi', {
       deployOptions: {

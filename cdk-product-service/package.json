@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^9.5.1",
+    "@types/aws-lambda": "^8.10.147",
     "@types/jest": "^29.5.14",
     "@types/node": "22.7.9",
     "aws-cdk": "2.179.0",
@@ -25,6 +26,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.751.0",
+    "@aws-sdk/client-sqs": "^3.758.0",
     "@aws-sdk/lib-dynamodb": "^3.751.0",
     "@aws-sdk/util-dynamodb": "^3.751.0",
     "aws-cdk-lib": "^2.179.0",
