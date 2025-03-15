@@ -3,8 +3,14 @@ import { Construct } from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import* as sqs from 'aws-cdk-lib/aws-sqs';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as sns from 'aws-cdk-lib/aws-sns';
+import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { config } from 'dotenv';
+
+
+config();
 
 export class CdkProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -33,12 +39,21 @@ export class CdkProductServiceStack extends cdk.Stack {
       receiveMessageWaitTime: cdk.Duration.seconds(10),
     });
 
+    const createProductTopic = new sns.Topic(this, 'createProductTopic', {
+      topicName: 'createProductTopic',
+      displayName: 'Create product topic'
+    })
+
+    createProductTopic.addSubscription(new subscriptions.EmailSubscription(process.env.USER_EMAIL!));
+
     const params = {
       runtime: lambda.Runtime.NODEJS_20_X,
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         PRODUCT_TABLE_NAME: productTable.tableName,
         STOCK_TABLE_NAME: stockTable.tableName,
+        SNS_TOPIC_ARN: createProductTopic.topicArn,
+        REGION: cdk.Stack.of(this).region,
       },
     };
 
@@ -68,8 +83,6 @@ export class CdkProductServiceStack extends cdk.Stack {
       maxBatchingWindow: cdk.Duration.minutes(3),
       reportBatchItemFailures: true
     }));
-    catalogItemsQueue.grantConsumeMessages(catalogBatchProcess);
-
 
     const api = new apigateway.RestApi(this, 'ProductApi', {
       deployOptions: {
@@ -90,13 +103,20 @@ export class CdkProductServiceStack extends cdk.Stack {
     // GET /products/{id}
     const product = products.addResource('{id}');
     product.addMethod('GET', new apigateway.LambdaIntegration(getProductById));
-
+    //dynamodb
     productTable.grantReadData(getProductsList);
     productTable.grantReadData(getProductById);
     stockTable.grantReadData(getProductsList);
     stockTable.grantReadData(getProductById);
     productTable.grantWriteData(createProduct);
     stockTable.grantWriteData(createProduct);
+    stockTable.grantWriteData(catalogBatchProcess);
+    productTable.grantWriteData(catalogBatchProcess);
+    //sns
+    createProductTopic.grantPublish(catalogBatchProcess);
+    //sqs
+    catalogItemsQueue.grantConsumeMessages(catalogBatchProcess);
+
 
   }
 }
