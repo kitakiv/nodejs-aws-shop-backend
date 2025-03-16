@@ -44,7 +44,22 @@ export class CdkProductServiceStack extends cdk.Stack {
       displayName: 'Create product topic'
     })
 
-    createProductTopic.addSubscription(new subscriptions.EmailSubscription(process.env.USER_EMAIL!));
+    createProductTopic.addSubscription(new subscriptions.EmailSubscription(process.env.HIGH_PRICE!, {
+      json: true,
+      filterPolicy: {
+        price: sns.SubscriptionFilter.numericFilter({
+          greaterThanOrEqualTo: 100
+        })
+      }
+    }));
+    createProductTopic.addSubscription(new subscriptions.EmailSubscription(process.env.LOW_PRICE!, {
+      json: true,
+      filterPolicy: {
+        price: sns.SubscriptionFilter.numericFilter({
+          lessThan: 100
+        })
+      }
+    }));
 
     const params = {
       runtime: lambda.Runtime.NODEJS_20_X,
