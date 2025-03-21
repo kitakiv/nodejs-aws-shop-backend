@@ -57,6 +57,16 @@ export class CdkImportServiceStack extends cdk.Stack {
       },
     });
 
+    const authorizer = new apigateway.TokenAuthorizer(this, 'ImportAuthorizer', {
+      handler: lambda.Function.fromFunctionArn(
+        this,
+        'AuthorizerFunction',
+        cdk.Fn.importValue('AuthorizerFunctionArn')
+      ),
+      identitySource: apigateway.IdentitySource.header('Authorization'),
+      resultsCacheTtl: cdk.Duration.seconds(0),
+    });
+
     const importResource = api.root.addResource('import');
     importResource.addMethod('GET',
       new apigateway.LambdaIntegration(importProductsFile), {
@@ -66,6 +76,8 @@ export class CdkImportServiceStack extends cdk.Stack {
       requestValidatorOptions: {
         validateRequestParameters: true,
       },
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
     }
     );
 
