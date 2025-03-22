@@ -6,6 +6,8 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { ResponseType } from 'aws-cdk-lib/aws-apigateway';
+import { headers } from '../lambda/functions/constants';
 
 
 export class CdkImportServiceStack extends cdk.Stack {
@@ -55,6 +57,38 @@ export class CdkImportServiceStack extends cdk.Stack {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
       },
+    });
+
+    const headers = {
+      'Access-Control-Allow-Origin': "'*'",
+      'Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+    }
+
+    api.addGatewayResponse('UNAUTHORIZED', {
+      type: ResponseType.UNAUTHORIZED,
+      statusCode: '401',
+      responseHeaders: headers,
+      templates: {
+        'application/json': '{"message": "Unauthorized", "statusCode": 401}'
+      },
+    });
+
+    api.addGatewayResponse('MISSING_AUTHENTICATION_TOKEN', {
+      type: ResponseType.MISSING_AUTHENTICATION_TOKEN,
+      responseHeaders: headers,
+      statusCode: '401',
+      templates: {
+        'application/json': '{"message": "Missing authentication token", "statusCode": 401}'
+      },
+    });
+
+    api.addGatewayResponse('Forbidden', {
+      type: apigateway.ResponseType.ACCESS_DENIED,
+      statusCode: '403',
+      responseHeaders: headers,
+      templates: {
+        'application/json': '{"message": "Access Denied", "statusCode": 403}'
+      }
     });
 
     const authorizer = new apigateway.TokenAuthorizer(this, 'ImportAuthorizer', {
