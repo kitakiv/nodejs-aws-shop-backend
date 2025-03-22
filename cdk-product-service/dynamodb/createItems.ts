@@ -1,8 +1,8 @@
 
 import { DynamoDBDocumentClient, TransactWriteCommand , TransactWriteCommandInput} from "@aws-sdk/lib-dynamodb";
 import client from "../lambda/middleware/middleware";
-import { faker, tr } from '@faker-js/faker';
-import {addProductTranscript} from "../lambda/request/constans";
+import { faker } from '@faker-js/faker';
+import {addProductTranscript} from "../lambda/request/transit/transit";
 const docClient = DynamoDBDocumentClient.from(client);
 
 function generateData(count: number) {

@@ -1,0 +1,22 @@
+{
+  "name": "lambda",
+  "version": "1.0.0",
+  "description": "lambda dependences",
+  "main": "catalogBatchProcess.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "kitakiv"
+  },
+  "keywords": [
+    "kitakiv"
+  ],
+  "author": "kitakiv",
+  "license": "ISC",
+  "types": "./catalogBatchProcess.d.ts",
+  "dependencies": {
+    "aws-sdk": "^2.1692.0"
+  }
+}

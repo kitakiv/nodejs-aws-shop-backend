@@ -5,7 +5,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
-import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 
 export class CdkImportServiceStack extends cdk.Stack {
@@ -17,6 +17,15 @@ export class CdkImportServiceStack extends cdk.Stack {
       'ImportBucket',
       'nodejs-aws-shop-backend'
     );
+
+    const catalogItemsQueue = sqs.Queue.fromQueueAttributes(
+      this,
+      'catalogItemsQueue',
+      {
+        queueName: 'catalogItemsQueue',
+        queueArn: `arn:aws:sqs:${cdk.Stack.of(this).region}:${cdk.Aws.ACCOUNT_ID}:catalogItemsQueue`,
+      }
+    )
 
 
     const importProductsFile = new lambda.Function(this, 'importProductsFile', {
@@ -35,6 +44,7 @@ export class CdkImportServiceStack extends cdk.Stack {
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         REGION: cdk.Stack.of(this).region,
+        SQS_QUEUE_URL: catalogItemsQueue.queueUrl,
       }
     });
 
@@ -62,6 +72,8 @@ export class CdkImportServiceStack extends cdk.Stack {
     uploadBucket.grantPut(importProductsFile);
     uploadBucket.grantReadWrite(importFileParser);
     uploadBucket.grantDelete(importFileParser);
+
+    catalogItemsQueue.grantSendMessages(importFileParser);
     //grant importProductsFile
     importProductsFile.addToRolePolicy(
       new iam.PolicyStatement({

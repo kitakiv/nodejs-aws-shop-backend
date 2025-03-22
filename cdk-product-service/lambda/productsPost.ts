@@ -2,8 +2,9 @@
 import {
     DynamoDBDocumentClient, TransactWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { headers, StatusCode, StatusCodeMessage, addProductTranscript} from "./request/constans";
+import { headers, StatusCode, StatusCodeMessage} from "./request/constans";
 import client, { logRequestMiddleware } from "./middleware/middleware";
+import { addProductTranscript } from "./request/transit/transit";
 
 const dynamo = DynamoDBDocumentClient.from(client);
 
