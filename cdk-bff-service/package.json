@@ -11,7 +11,8 @@
     "start:prod": "node dist/index.js",
     "eb:init": "eb init --region ue-west-1",
     "eb:create": "eb create --single --cname cdk-bff-service",
-    "eb:deploy": "eb deploy"
+    "eb:deploy": "eb deploy",
+    "docker:build": "docker build -t kitakiv/bff-server-cache:latest ."
   },
   "keywords": [],
   "author": "",
