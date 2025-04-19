@@ -25,29 +25,36 @@ router.all('/*service', async (req: Request, res: Response) => {
    if (process.env[service]) {
     const axiosConfig = {
         url: `${recipientUrl}${req.originalUrl.split('/').slice(2).join('/')}`,
-        headers: req.headers,
         method: req.method,
         data: req.body ? JSON.stringify(req.body) : null,
-    }
-    console.log('Request:', axiosConfig);
-    delete axiosConfig.headers.host;
-    try {
-        const response = await axios(axiosConfig);
-        console.log('Response:', response.data);
-        res.status(response.status).send(response.data);
-    } catch (error) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response) {
-            console.log('Error response:', axiosError.response.data);
-            res.status(axiosError.response.status).send(axiosError.response.data);
-        } else {
-            console.log('Error:', axiosError);
-            res.status(500).send({
-                message: 'Internal Server Error',
-                error: axiosError.message
-            });
+        headers: {
+            ...req.headers,
+            host: undefined,
+            'content-length': undefined,
+            'transfer-encoding': undefined,
+            connection: undefined,
+            'sec-fetch-mode': undefined,
+            'sec-fetch-site': undefined,
+            'sec-fetch-dest': undefined,
+            origin: undefined,
+            referer: undefined
         }
     }
+    console.log('Request:', axiosConfig);
+    axios(axiosConfig)
+        .then((response) => {
+            console.log('Response:', response.data);
+            res.status(response.status).send(response.data);
+        })
+        .catch((error: AxiosError) => {
+            if (error.response) {
+                console.log('Error:', error.response.data);
+                res.status(error.response.status).send(error.response.data);
+            } else {
+                console.log('Error:', error);
+                res.status(500).send(error);
+            }
+        });
 
    } else {
     res.status(502).send({message: 'Service not found!'});
