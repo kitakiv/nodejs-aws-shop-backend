@@ -27,7 +27,7 @@ const parseBody = (req: IncomingMessage): Promise<any> => {
 };
 
 const server = http.createServer(async (req: IncomingMessage, res: ServerResponse) => {
-    const { url, method } = req;
+    const { url, method, headers } = req;
 
     if (!url || !method) return;
 
@@ -47,7 +47,22 @@ const server = http.createServer(async (req: IncomingMessage, res: ServerRespons
             sendJson(200, cached);
         } else {
             try {
-                const response = await axios.get(`${process.env.product}products`);
+                const response = await axios.get(`${process.env.product}products`,
+                    {
+                        headers: {
+                            ...headers,
+                            host: undefined,
+                            'content-length': undefined,
+                            'transfer-encoding': undefined,
+                            connection: undefined,
+                            'sec-fetch-mode': undefined,
+                            'sec-fetch-site': undefined,
+                            'sec-fetch-dest': undefined,
+                            origin: undefined,
+                            referer: undefined
+                        }
+                    }
+                );
                 cache.set(CACHE_KEY_PRODUCTS, response.data);
                 sendJson(200, response.data);
             } catch (err) {
@@ -87,15 +102,24 @@ const server = http.createServer(async (req: IncomingMessage, res: ServerRespons
                 method: method as any,
                 data: data || undefined,
                 headers: {
-                    'Content-Type': 'application/json',
-                },
+                    ...req.headers,
+                    host: undefined,
+                    'content-length': undefined,
+                    'transfer-encoding': undefined,
+                    connection: undefined,
+                    'sec-fetch-mode': undefined,
+                    'sec-fetch-site': undefined,
+                    'sec-fetch-dest': undefined,
+                    origin: undefined,
+                    referer: undefined
+                }
             });
 
             res.writeHead(response.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(response.data));
         } catch (err) {
             const error = err as AxiosError;
-            sendJson(error.response?.status || 500, error.response?.data || { message: 'Proxy error' });
+            sendJson(error.response?.status || 500, error.response?.data || { message: error.message });
         }
         return;
     }
