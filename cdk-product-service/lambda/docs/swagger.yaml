@@ -1,0 +1,144 @@
+openapi: 3.0.0
+info:
+  title: My API
+  description: API documentation for my project
+  version: 1.0.0
+
+servers:
+  - url: https://im1sioaeng.execute-api.eu-west-1.amazonaws.com/dev/
+    description: Product server
+
+paths:
+  /products:
+    post:
+      summary: Create a new product
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Skirt
+                description:
+                  type: string
+                  example: Red skirt for office
+                price:
+                  type: integer
+                  example: 23
+                count:
+                  type: integer
+                  example: 4
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: 7567ec4b-b10c-48c5-9345-fc73c48a80aa
+                  title:
+                    type: string
+                    example: Skirt
+                  description:
+                    type: string
+                    example: Red skirt for office
+                  price:
+                    type: integer
+                    example: 23
+                  count:
+                    type: integer
+                    example: 4
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: Bad request
+    get:
+      summary: Get all products
+      operationId: getProducts
+      responses:
+        '200':
+          description: A list of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                 type: object
+                 properties:
+                   id:
+                     type: string
+                     example: 7567ec4b-b10c-45c5-9345-fc73c48a80a1
+                   title:
+                     type: string
+                     example: Skirt
+                   description:
+                     type: string
+                     example: Red skirt for office
+                   price:
+                     type: integer
+                     example: 23
+                   count:
+                     type: integer
+                     example: 4
+  /products/{id}:
+    get:
+      summary: Get a product by id
+      operationId: getProductsById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A single product
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                      id:
+                        type: string
+                        example: 7567ec4b-b10c-45c5-9345-fc73c48a80a1
+                      title:
+                        type: string
+                        example: Skirt
+                      description:
+                        type: string
+                        example: Red skirt for office
+                      price:
+                        type: integer
+                        example: 23
+                      count:
+                        type: integer
+                        example: 4
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: Product with id 1234 not found

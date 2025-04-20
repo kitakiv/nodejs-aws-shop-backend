@@ -93,6 +93,11 @@ export class CdkProductServiceStack extends cdk.Stack {
       ...params
     });
 
+    const swaggerLambda = new lambda.Function(this, 'swaggerLambda', {
+      handler: 'swagger.handler',
+      ...params
+    });
+
     catalogBatchProcess.addEventSource(new SqsEventSource(catalogItemsQueue, {
       batchSize: 5,
       maxBatchingWindow: cdk.Duration.minutes(3),
@@ -110,6 +115,9 @@ export class CdkProductServiceStack extends cdk.Stack {
         allowMethods: ['GET', 'POST', 'OPTIONS'],
       }
     });
+    // GET /docs
+    const swagger = api.root.addResource('docs');
+    swagger.addMethod('GET', new apigateway.LambdaIntegration(swaggerLambda));
      // GET /products
     const products = api.root.addResource('products');
     products.addMethod('GET', new apigateway.LambdaIntegration(getProductsList));

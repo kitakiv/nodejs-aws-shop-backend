@@ -1,0 +1,34 @@
+# Dependencies directory - will be rebuilt inside container
+node_modules        # Excluded because npm install will create a fresh copy in the container
+                   # Also, local node_modules might contain OS-specific binaries
+
+# Debug logs
+npm-debug.log      # Local debugging logs that aren't needed in container
+                   # and might contain sensitive information
+
+# Build output
+dist               # Excluded because we'll build the application fresh inside
+                   # the container to ensure consistent compilation
+
+# CDK output
+cdk-nest-cart-service  # AWS CDK deployment artifacts that aren't needed
+                       # for the Docker container
+
+# Development configuration files
+.prettierrc        # Code formatting configuration only needed for development
+.eslintrc.js      # Linting rules only needed during development
+
+# Version control
+.git              # Version control directory that adds unnecessary bulk
+                  # and isn't needed for running the application
+.gitignore        # Git configuration file not needed in container
+
+# Environment and documentation
+README.md         # Documentation file not needed for running the application
+# Tests
+test
+**/*.spec.ts
+**/*.test.ts
+jest.config.js
+
+env.example

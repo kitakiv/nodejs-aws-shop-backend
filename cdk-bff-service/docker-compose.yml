@@ -1,0 +1,11 @@
+services:
+  api:
+    image: kitakiv/bff-server-cache:latest
+    ports:
+      - "80:8080"
+    environment:
+      - cart=${cart}
+      - APP_PORT=${APP_PORT}
+      - product=${product}
+      - CACHE_TIME=${CACHE_TIME}
+    restart: always

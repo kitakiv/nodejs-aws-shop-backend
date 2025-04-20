@@ -1,0 +1,33 @@
+{
+  "name": "cdk-bff-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "type": "commonjs",
+  "scripts": {
+    "start": "nodemon src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start:prod": "node dist/index.js",
+    "eb:init": "eb init --region ue-west-1",
+    "eb:create": "eb create --single --cname cdk-bff-service",
+    "eb:deploy": "eb deploy",
+    "docker:build": "docker build -t kitakiv/bff-server-cache:latest ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/body-parser": "^1.19.5",
+    "@types/node": "^22.14.1",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "body-parser": "^2.2.0",
+    "dotenv": "^16.5.0",
+    "node-cache": "^5.1.2"
+  }
+}
