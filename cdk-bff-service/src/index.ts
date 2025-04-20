@@ -1,110 +1,108 @@
-import express from 'express';
-import http from 'http';
-import bodyParser from 'body-parser';
+import http, { IncomingMessage, ServerResponse } from 'http';
 import dotenv from 'dotenv';
-import { Request, Response  } from 'express';
-import axios, { AxiosError } from 'axios';
 import NodeCache from 'node-cache';
+import axios, { AxiosError } from 'axios';
+
 dotenv.config();
 
-const app = express();
-app.use(bodyParser.json());
 const cache = new NodeCache({
-    stdTTL: process.env.CACHE_TIME? Number(process.env.CACHE_TIME) : 120,
-    checkperiod: process.env.CACHE_TIME? Number(process.env.CACHE_TIME) : 120
+    stdTTL: process.env.CACHE_TIME ? Number(process.env.CACHE_TIME) : 120,
+    checkperiod: process.env.CACHE_TIME ? Number(process.env.CACHE_TIME) : 120,
 });
 
 const CACHE_KEY_PRODUCTS = 'products_list';
 
-const server = http.createServer(app);
+const parseBody = (req: IncomingMessage): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        let body = '';
+        req.on('data', chunk => (body += chunk));
+        req.on('end', () => {
+            try {
+                resolve(JSON.parse(body || '{}'));
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
+};
+
+const server = http.createServer(async (req: IncomingMessage, res: ServerResponse) => {
+    const { url, method } = req;
+
+    if (!url || !method) return;
+
+    const sendJson = (status: number, data: any) => {
+        res.writeHead(status, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(data));
+    };
+
+    if (url === '/' && method === 'GET') {
+        sendJson(200, { message: 'Hello!' });
+        return;
+    }
+
+    if (url === '/product/products' && method === 'GET') {
+        const cached = cache.get(CACHE_KEY_PRODUCTS);
+        if (cached) {
+            sendJson(200, cached);
+        } else {
+            try {
+                const response = await axios.get(`${process.env.product}products`);
+                cache.set(CACHE_KEY_PRODUCTS, response.data);
+                sendJson(200, response.data);
+            } catch (err) {
+                const error = err as AxiosError;
+                sendJson(error.response?.status || 500, error.response?.data || { message: 'Error fetching products' });
+            }
+        }
+        return;
+    }
+
+    if (url?.startsWith('/invalidate-cache') && method === 'POST') {
+        cache.del(CACHE_KEY_PRODUCTS);
+        sendJson(200, { message: 'Products cache invalidated' });
+        return;
+    }
+
+    if (url === '/cache-stats' && method === 'GET') {
+        sendJson(200, cache.getStats());
+        return;
+    }
+
+    const serviceMatch = url?.match(/^\/([^\/]+)\/(.*)$/);
+    if (serviceMatch) {
+        const [, service, restPath] = serviceMatch;
+        const recipientUrl = process.env[service];
+
+        if (!recipientUrl) {
+            sendJson(502, { message: 'Service not found!' });
+            return;
+        }
+
+        const data = method === 'GET' || method === 'DELETE' ? null : await parseBody(req);
+
+        try {
+            const response = await axios({
+                url: `${recipientUrl}/${restPath}`,
+                method: method as any,
+                data: data || undefined,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            res.writeHead(response.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(response.data));
+        } catch (err) {
+            const error = err as AxiosError;
+            sendJson(error.response?.status || 500, error.response?.data || { message: 'Proxy error' });
+        }
+        return;
+    }
+
+    sendJson(404, { message: 'Not found' });
+});
 
 server.listen(process.env.APP_PORT || 8080, () => {
     console.log(`Server is running on port ${process.env.APP_PORT || 8080}`);
 });
-const router = express.Router();
-router.all('/', (req: Request, res: Response) => {
-    res.send({message: 'Hello!'});
-});
-
-router.get('/product/products', (req: Request, res: Response) => {
-    try {
-        const cacheProducts = cache.get(CACHE_KEY_PRODUCTS);
-        if (cacheProducts) {
-            res.send(cacheProducts);
-        } else {
-            const axiosConfig = {
-                url: `${process.env.product}products`,
-                method: req.method,
-            }
-            console.log('Request:', axiosConfig);
-            axios(axiosConfig)
-                .then((response) => {
-                    cache.set(CACHE_KEY_PRODUCTS, response.data);
-                    res.send(response.data);
-                })
-                .catch((error) => {
-                    if (error.response) {
-                        res.status(error.response.status).send(error.response.data);
-                    } else {
-                        console.log('Error:', error);
-                        res.status(500).send(error);
-                    }
-                });
-        }
-    } catch (error) {
-        console.log('Error:', error);
-        res.status(500).send({error});
-    }
-})
-
-router.all('/*service', async (req: Request, res: Response) => {
-   const service = req.params.service[0];
-   const recipientUrl = process.env[service];
-   if (process.env[service]) {
-    const axiosConfig = {
-        url: `${recipientUrl}${req.originalUrl.split('/').slice(2).join('/')}`,
-        method: req.method,
-        data: req.body ? JSON.stringify(req.body) : null,
-        headers: {
-            ...req.headers,
-            host: undefined,
-            'content-length': undefined,
-            'transfer-encoding': undefined,
-            connection: undefined,
-            'sec-fetch-mode': undefined,
-            'sec-fetch-site': undefined,
-            'sec-fetch-dest': undefined,
-            origin: undefined,
-            referer: undefined
-        }
-    }
-    console.log('Request:', axiosConfig);
-    axios(axiosConfig)
-        .then((response) => {
-            console.log('Response:', response.data);
-            res.status(response.status).send(response.data);
-        })
-        .catch((error: AxiosError) => {
-            if (error.response) {
-                console.log('Error:', error.response.data);
-                res.status(error.response.status).send(error.response.data);
-            } else {
-                console.log('Error:', error);
-                res.status(500).send(error);
-            }
-        });
-
-   } else {
-    res.status(502).send({message: 'Service not found!'});
-   }
-});
-
-router.post('/invalidate-cache', (req: Request, res: Response) => {
-    cache.del(CACHE_KEY_PRODUCTS);
-    res.json({ message: 'Products cache invalidated' });
-  });
-router.get('/cache-stats', (req: Request, res: Response) => {
-    res.json(cache.getStats());
-});
-
-app.use('/', router);
